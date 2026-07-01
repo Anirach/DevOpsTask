@@ -40,6 +40,13 @@ interface TaskFlowContextType {
   deleteProject: (projectId: string) => void;
   addComment: (taskId: string, body: string) => void;
   updateCurrentUserProfile: (name: string, email: string, role: string, avatarColor: string) => void;
+  addUser: (user: Omit<User, 'id' | 'initials'>) => void;
+  updateUser: (user: User) => void;
+  deleteUser: (userId: string) => void;
+  allowMemberProjectCreation: boolean;
+  setAllowMemberProjectCreation: (allow: boolean) => void;
+  allowMemberProjectDeletion: boolean;
+  setAllowMemberProjectDeletion: (allow: boolean) => void;
   resetToDefault: () => void;
   isAuthenticated: boolean;
   login: (userId?: string) => void;
@@ -127,6 +134,24 @@ export const TaskFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     priority: 'all',
   });
 
+  const [allowMemberProjectCreation, setAllowMemberProjectCreation] = useState<boolean>(() => {
+    const saved = localStorage.getItem('tf_allow_member_project_creation');
+    return saved !== 'false'; // default is true
+  });
+
+  const [allowMemberProjectDeletion, setAllowMemberProjectDeletion] = useState<boolean>(() => {
+    const saved = localStorage.getItem('tf_allow_member_project_deletion');
+    return saved !== 'false'; // default is true
+  });
+
+  useEffect(() => {
+    localStorage.setItem('tf_allow_member_project_creation', String(allowMemberProjectCreation));
+  }, [allowMemberProjectCreation]);
+
+  useEffect(() => {
+    localStorage.setItem('tf_allow_member_project_deletion', String(allowMemberProjectDeletion));
+  }, [allowMemberProjectDeletion]);
+
   // Sync state to local storage when changed
   useEffect(() => {
     localStorage.setItem('tf_users', JSON.stringify(users));
@@ -160,6 +185,8 @@ export const TaskFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setSelectedTaskId(null);
     setSearchQuery('');
     setFilters({ status: 'all', assigneeId: 'all', priority: 'all' });
+    setAllowMemberProjectCreation(true);
+    setAllowMemberProjectDeletion(true);
   };
 
   // --- Task Operations ---
@@ -239,6 +266,54 @@ export const TaskFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   };
 
+  const addUser = (newUser: Omit<User, 'id' | 'initials'>) => {
+    const initials = newUser.name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U';
+
+    const user: User = {
+      ...newUser,
+      id: `u_${Date.now()}`,
+      initials,
+    };
+    setUsers(prev => [...prev, user]);
+  };
+
+  const updateUser = (updatedUser: User) => {
+    const initials = updatedUser.name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U';
+
+    setUsers(prev =>
+      prev.map(u => (u.id === updatedUser.id ? { ...updatedUser, initials } : u))
+    );
+  };
+
+  const deleteUser = (userId: string) => {
+    if (userId === currentUserId) return;
+    setUsers(prev => prev.filter(u => u.id !== userId));
+    // Clean up task assignments
+    setTasks(prev =>
+      prev.map(t => ({
+        ...t,
+        assigneeIds: t.assigneeIds.filter(id => id !== userId),
+      }))
+    );
+    // Clean up project memberships
+    setProjects(prev =>
+      prev.map(p => ({
+        ...p,
+        memberIds: p.memberIds.filter(id => id !== userId),
+      }))
+    );
+  };
+
   return (
     <TaskFlowContext.Provider
       value={{
@@ -266,6 +341,13 @@ export const TaskFlowProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         deleteProject,
         addComment,
         updateCurrentUserProfile,
+        addUser,
+        updateUser,
+        deleteUser,
+        allowMemberProjectCreation,
+        setAllowMemberProjectCreation,
+        allowMemberProjectDeletion,
+        setAllowMemberProjectDeletion,
         resetToDefault,
         isAuthenticated,
         login,

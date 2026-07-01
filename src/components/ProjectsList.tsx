@@ -10,9 +10,12 @@ import { Plus, Folder, Calendar, Users, ChevronRight, BarChart } from 'lucide-re
 import { CreateProjectModal } from './CreateProjectModal';
 
 export const ProjectsList: React.FC = () => {
-  const { projects, tasks, users, setSelectedProjectId, setCurrentTab } = useTaskFlow();
+  const { projects, tasks, users, setSelectedProjectId, setCurrentTab, currentUser, allowMemberProjectCreation } = useTaskFlow();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+
+  const isAdmin = currentUser?.id === 'u1' || currentUser?.role === 'Workspace Administrator' || currentUser?.role?.toLowerCase().includes('admin');
+  const canCreateProject = allowMemberProjectCreation || isAdmin;
 
   // Click a card to navigate to project workspace
   const handleProjectSelect = (projId: string) => {
@@ -30,14 +33,20 @@ export const ProjectsList: React.FC = () => {
           <p className="text-sm text-slate-500 mt-1">Manage, view, and plan collaborate boards for your team's initiatives.</p>
         </div>
 
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md shadow-blue-600/10 cursor-pointer"
-          id="btn-new-project"
-        >
-          <Plus className="h-4 w-4" />
-          New Project
-        </button>
+        {canCreateProject ? (
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-all shadow-md shadow-blue-600/10 cursor-pointer"
+            id="btn-new-project"
+          >
+            <Plus className="h-4 w-4" />
+            New Project
+          </button>
+        ) : (
+          <div className="text-slate-400 text-[11px] font-bold bg-slate-100 border border-slate-200/60 px-3.5 py-2.5 rounded-lg select-none" title="Workspace policy restricts project creation to Administrators only.">
+            🔒 Creation Restrained (Admin Only)
+          </div>
+        )}
       </div>
 
       {/* Grid of Projects (3 columns on desktop, 2 on tablet, 1 on mobile) */}

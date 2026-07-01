@@ -45,4 +45,4 @@ export interface Comment {
   createdAt: string;
 }
 
-export type ViewTab = 'dashboard' | 'my-work' | 'projects' | 'team' | 'settings' | 'search';
+export type ViewTab = 'dashboard' | 'my-work' | 'projects' | 'team' | 'settings' | 'search' | 'admin';

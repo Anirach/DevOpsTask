@@ -21,6 +21,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
     deleteProject, 
     updateProject,
     currentUserId,
+    currentUser,
+    allowMemberProjectDeletion,
     setSelectedProjectId, 
     setCurrentTab 
   } = useTaskFlow();
@@ -32,6 +34,9 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
+
+  const isAdmin = currentUser?.id === 'u1' || currentUser?.role === 'Workspace Administrator' || currentUser?.role?.toLowerCase().includes('admin');
+  const canDeleteProject = allowMemberProjectDeletion || isAdmin;
 
   useEffect(() => {
     if (isEditMembersOpen && project) {
@@ -143,31 +148,33 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
           </div>
 
           {/* Delete triggers */}
-          {showDeleteConfirm ? (
-            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 p-1.5 rounded-lg animate-in fade-in slide-in-from-top-1">
-              <span className="text-[10px] text-rose-700 font-bold px-1.5">Delete project?</span>
-              <button 
-                onClick={handleDelete}
-                className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold px-3 py-1 rounded-md transition-colors cursor-pointer"
+          {canDeleteProject && (
+            showDeleteConfirm ? (
+              <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 p-1.5 rounded-lg animate-in fade-in slide-in-from-top-1">
+                <span className="text-[10px] text-rose-700 font-bold px-1.5">Delete project?</span>
+                <button 
+                  onClick={handleDelete}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-bold px-3 py-1 rounded-md transition-colors cursor-pointer"
+                >
+                  Yes
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold px-3 py-1 rounded-md transition-colors cursor-pointer"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                title="Delete Project"
+                id="btn-delete-project"
               >
-                Yes
+                <Trash2 className="h-4 w-4" />
               </button>
-              <button 
-                onClick={() => setShowDeleteConfirm(false)}
-                className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-[10px] font-bold px-3 py-1 rounded-md transition-colors cursor-pointer"
-              >
-                No
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
-              title="Delete Project"
-              id="btn-delete-project"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            )
           )}
 
         </div>

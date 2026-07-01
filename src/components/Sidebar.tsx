@@ -18,7 +18,8 @@ import {
   LogOut,
   BarChart3,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
@@ -29,6 +30,8 @@ export const Sidebar: React.FC = () => {
     return saved === 'true';
   });
 
+  const isAdmin = currentUser?.id === 'u1' || currentUser?.role === 'Workspace Administrator' || currentUser?.role?.toLowerCase().includes('admin');
+
   const navItems = [
     { id: 'dashboard' as ViewTab, label: 'Dashboard', icon: BarChart3 },
     { id: 'my-work' as ViewTab, label: 'My Work', icon: LayoutDashboard },
@@ -36,6 +39,10 @@ export const Sidebar: React.FC = () => {
     { id: 'team' as ViewTab, label: 'Team Members', icon: Users },
     { id: 'settings' as ViewTab, label: 'Settings', icon: SettingsIcon },
   ];
+
+  if (isAdmin) {
+    navItems.push({ id: 'admin' as ViewTab, label: 'Admin Console', icon: ShieldCheck });
+  }
 
   const handleTabChange = (tabId: ViewTab) => {
     setCurrentTab(tabId);

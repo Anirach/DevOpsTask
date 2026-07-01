@@ -16,6 +16,7 @@ import { TeamRoster } from './components/TeamRoster';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SearchResults } from './components/SearchResults';
 import { TaskDetailModal } from './components/TaskDetailModal';
+import { AdminPanel } from './components/AdminPanel';
 
 // Inner App content that has access to TaskFlow context
 const AppContent: React.FC = () => {
@@ -68,6 +69,8 @@ const AppContent: React.FC = () => {
         return <TeamRoster />;
       case 'settings':
         return <SettingsPanel />;
+      case 'admin':
+        return <AdminPanel />;
       case 'search':
         return <SearchResults />;
       default:
