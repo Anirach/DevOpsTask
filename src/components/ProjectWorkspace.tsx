@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTaskFlow } from '../context/TaskFlowContext';
 import { KanbanBoard } from './KanbanBoard';
 import { ListView } from './ListView';
-import { Grid, List as ListIcon, Trash2, Users, AlertCircle, ArrowLeft } from 'lucide-react';
+import { Grid, List as ListIcon, Trash2, Users, AlertCircle, ArrowLeft, X, UserPlus, Plus } from 'lucide-react';
+import { CreateTaskModal } from './CreateTaskModal';
 
 interface ProjectWorkspaceProps {
   projectId: string;
@@ -18,14 +19,25 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
     projects, 
     users, 
     deleteProject, 
+    updateProject,
+    currentUserId,
     setSelectedProjectId, 
     setCurrentTab 
   } = useTaskFlow();
 
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isEditMembersOpen, setIsEditMembersOpen] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   const project = projects.find(p => p.id === projectId);
+
+  useEffect(() => {
+    if (isEditMembersOpen && project) {
+      setSelectedMemberIds(project.memberIds);
+    }
+  }, [isEditMembersOpen, project]);
 
   if (!project) {
     return (
@@ -45,6 +57,24 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
 
   // Map member details
   const projectMembers = users.filter(u => project.memberIds.includes(u.id));
+
+  const handleMemberToggle = (userId: string) => {
+    setSelectedMemberIds(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSaveMembers = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!project) return;
+    updateProject({
+      ...project,
+      memberIds: selectedMemberIds,
+    });
+    setIsEditMembersOpen(false);
+  };
 
   const handleDelete = () => {
     deleteProject(project.id);
@@ -87,7 +117,7 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
               <Users className="h-3.5 w-3.5" />
               Team:
             </span>
-            <div className="flex -space-x-1.5 overflow-hidden">
+            <div className="flex -space-x-1.5 overflow-hidden mr-1">
               {projectMembers.map((member) => (
                 <div
                   key={member.id}
@@ -99,6 +129,17 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
                 </div>
               ))}
             </div>
+            
+            {/* Manage members button */}
+            <button
+              onClick={() => setIsEditMembersOpen(true)}
+              className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200/40 px-2 py-1 rounded-md transition-all cursor-pointer shadow-xs shrink-0"
+              title="Change members involved in this project"
+              id="btn-manage-members"
+            >
+              <UserPlus className="h-3 w-3" />
+              Manage
+            </button>
           </div>
 
           {/* Delete triggers */}
@@ -131,8 +172,8 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
 
         </div>
 
-        {/* Board vs List Toggle (Segmented Control) */}
-        <div className="border-t border-slate-100 md:border-0 pt-4 md:pt-0 w-full md:w-auto flex justify-start pl-2 md:pl-0 shrink-0">
+        {/* Board vs List Toggle (Segmented Control) + Add Task Button */}
+        <div className="border-t border-slate-100 md:border-0 pt-4 md:pt-0 w-full md:w-auto flex flex-wrap items-center gap-3 justify-start pl-2 md:pl-0 shrink-0">
           <div className="bg-slate-100 p-1 rounded-lg flex items-center gap-1 shadow-inner select-none">
             <button
               onClick={() => setViewMode('board')}
@@ -159,6 +200,16 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
               List View
             </button>
           </div>
+
+          <button
+            onClick={() => setIsCreateTaskOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+            id="btn-project-add-task"
+            title="Add a new task to this project"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Task
+          </button>
         </div>
 
       </div>
@@ -171,6 +222,108 @@ export const ProjectWorkspace: React.FC<ProjectWorkspaceProps> = ({ projectId })
           <ListView projectId={projectId} />
         )}
       </div>
+
+      {/* Manage Project Members Modal */}
+      {isEditMembersOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setIsEditMembersOpen(false)}
+        >
+          <div 
+            className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col relative animate-in fade-in zoom-in-95 duration-150 text-left"
+            onClick={(e) => e.stopPropagation()}
+            id="manage-members-modal"
+          >
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/50">
+              <h2 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                Manage Project Members
+              </h2>
+              <button
+                onClick={() => setIsEditMembersOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                title="Close modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveMembers} className="p-6 space-y-4">
+              <div className="space-y-1">
+                <h3 className="text-xs font-bold text-slate-700">Project: {project.name}</h3>
+                <p className="text-[11px] text-slate-400 font-medium">Select which team members should be involved in this project board.</p>
+              </div>
+
+              {/* Member Checklist Multi-Select */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-600 block">
+                  Assign Team Members
+                </label>
+                <div className="border border-slate-200 rounded-lg p-3 space-y-2 max-h-56 overflow-y-auto bg-slate-50/50">
+                  {users.map((u) => {
+                    const isCurrent = u.id === currentUserId;
+                    const isChecked = selectedMemberIds.includes(u.id);
+                    return (
+                      <label 
+                        key={u.id}
+                        className="flex items-center justify-between p-1.5 rounded-md hover:bg-white text-xs text-slate-700 cursor-pointer select-none transition-colors border border-transparent hover:border-slate-100"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div 
+                            className="h-6.5 w-6.5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                            style={{ backgroundColor: u.avatarColor }}
+                          >
+                            {u.initials}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-800 block leading-tight">
+                              {u.name} {isCurrent && <span className="text-[10px] text-blue-600 font-semibold">(You)</span>}
+                            </span>
+                            <span className="text-[10px] text-slate-400 block leading-tight mt-0.5">{u.role}</span>
+                          </div>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleMemberToggle(u.id)}
+                          className="rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 cursor-pointer"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="border-t border-slate-100 pt-4 flex items-center justify-end gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setIsEditMembersOpen(false)}
+                  className="bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold px-4 py-2 border border-slate-200 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer shadow-xs"
+                  id="btn-save-project-members"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Task Modal wrapper */}
+      <CreateTaskModal 
+        isOpen={isCreateTaskOpen} 
+        onClose={() => setIsCreateTaskOpen(false)} 
+        defaultStatus="todo" 
+      />
 
     </div>
   );
